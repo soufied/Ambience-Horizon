@@ -6,7 +6,7 @@ Plays music from a resource pack, chosen by where you are and what you are doing
 
 ## Recommended packs: Ambience
 
-Use packs in the **Ambience** format (`ambience.properties`). They define more situations than ReactiveMusic packs:
+Use packs in the **Ambience** format (`ambience.properties`). They may define more situations than ReactiveMusic packs:
 
 - events the ReactiveMusic format has no key for: village, boss fight, dying, pumpkin, and the structures (bastion, fortress, stronghold, mineshaft, monument, End city, ancient city, trial chambers);
 - specific biomes (`Sunflower+Plains`) and biome tags.
