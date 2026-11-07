@@ -11,7 +11,7 @@ Use packs in the **Ambience** format (`ambience.properties`). They define more s
 - events the ReactiveMusic format has no key for: village, boss fight, dying, pumpkin, and the structures (bastion, fortress, stronghold, mineshaft, monument, End city, ancient city, trial chambers);
 - specific biomes (`Sunflower+Plains`) and biome tags.
 
-ReactiveMusic (`ReactiveMusic.yaml`) packs work too, but they only cover its own event list (`MAIN_MENU`, `UNDERWATER`, `UNDERGROUND`, `DEEP_UNDERGROUND`, `HIGH_UP`, `NIGHT`, `DAY`, `RAIN`, `SNOW`, `MOUNTAIN`, `BEACH`, `FOREST`, `NETHER`, `END`, `MINECART`, `BOAT`, `HORSE`, `PIG`, `FISHING`).
+ReactiveMusic (`ReactiveMusic.yaml`) packs are supported too, but this part is less tested. The events below are only the ones found in the one ReactiveMusic pack we downloaded (Reactive Music: RuneScape songpack). Other ReactiveMusic packs may use other events, and the list may be incomplete or wrong for them: `MAIN_MENU`, `UNDERWATER`, `UNDERGROUND`, `DEEP_UNDERGROUND`, `HIGH_UP`, `NIGHT`, `DAY`, `RAIN`, `SNOW`, `MOUNTAIN`, `BEACH`, `FOREST`, `NETHER`, `END`, `MINECART`, `BOAT`, `HORSE`, `PIG`, `FISHING`.
 
 ## Where to get packs
 
