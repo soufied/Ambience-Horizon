@@ -11,7 +11,19 @@ Use packs in the **Ambience** format (`ambience.properties`). They may define mo
 - events the ReactiveMusic format has no key for: village, boss fight, dying, pumpkin, and the structures (bastion, fortress, stronghold, mineshaft, monument, End city, ancient city, trial chambers);
 - specific biomes (`Sunflower+Plains`) and biome tags.
 
-ReactiveMusic (`ReactiveMusic.yaml`) packs are supported too, but this part is less tested. The events below are only the ones found in the one ReactiveMusic pack we downloaded (Reactive Music: RuneScape songpack). Other ReactiveMusic packs may use other events, and the list may be incomplete or wrong for them: `MAIN_MENU`, `UNDERWATER`, `UNDERGROUND`, `DEEP_UNDERGROUND`, `HIGH_UP`, `NIGHT`, `DAY`, `RAIN`, `SNOW`, `MOUNTAIN`, `BEACH`, `FOREST`, `NETHER`, `END`, `MINECART`, `BOAT`, `HORSE`, `PIG`, `FISHING`.
+ReactiveMusic (`ReactiveMusic.yaml`) packs are supported too, but this part is less tested. Other ReactiveMusic packs may use other events, and the list may be incomplete or wrong for them.
+
+## Supported tags
+
+**Ambience** (`ambience.properties`): `event.mainMenu`, `boss`, `underground`, `deepUnderground`, `highUp`, `village`, `villageNight`, `underwater`, `minecart`, `boat`, `horse`, `pig`, `night`, `rain`, `dying`, `fishing`, `pumpkinHead`, `nether`, `end`, `generic`, the structures (`bastion`, `fortress`, `stronghold`, `mineshaft`, `monument`, `end_city`, `ancient_city`, `trial_chambers`), `biome.<Name+With+Plus>`, `primarytag.<tag>`, `secondarytag.<tag>`. A value may list several songs separated by commas; one is picked each time the event starts.
+
+Not supported in Ambience: `credits`, `horde`, `bossWither`, `bossDragon` and custom `boss<Name>` events (the mod cannot tell which boss is active).
+
+**ReactiveMusic** (`ReactiveMusic.yaml`): events `MAIN_MENU`, `DAY`, `NIGHT`, `SUNRISE`, `SUNSET`, `RAIN`, `SNOW`, `STORM`, `UNDERWATER`, `UNDERGROUND`, `DEEP_UNDERGROUND`, `HIGH_UP`, `MINECART`, `BOAT`, `HORSE`, `PIG`, `FISHING`, `DYING`, `VILLAGE`, `BOSS`, `OVERWORLD`, `NETHER`, `END`, `GENERIC`, plus `MOUNTAIN`, `BEACH`, `FOREST`. Conditions: `BIOME=name` (part of a name is enough), `BIOMETAG=name` (with or without `IS_`), `DIM=name`, `||` for OR inside one condition, and several conditions in one `events` list must all be true (AND).
+
+Not supported in ReactiveMusic: `CREDITS`, `HOME`, `NEARBY_MOBS`, `BLOCK=` conditions, `allowFallback`, `forceStopMusicOn*`, `forceStartMusicOnValid`, `forceChance`, `alwaysPlay`, `alwaysStop`, `musicSwitchSpeed`, `musicDelayLength`.
+
+Biome tags are matched by keywords in the biome name, so a tag that is not in the mod's list matches nothing.
 
 ## Where to get packs
 
@@ -64,7 +76,7 @@ horizon-launcher native-build . --trust-native-code
 
 ## Credits
 
-The idea comes from the [Ambience](https://www.curseforge.com/minecraft/mc-mods/ambience-music-mod) music mod, licensed under [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB). This is a separate implementation for Horizon, written from scratch; the original code was not reused.
+The idea comes from the [Ambience](https://github.com/VazkiiModsArchive/Ambience) music mod, licensed under [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB). This is a separate implementation for Horizon, written from scratch; the original code was not reused.
 
 ## License
 

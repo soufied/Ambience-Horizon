@@ -19,7 +19,7 @@ const NIGHT_START: i64 = 13000;
 const NIGHT_END: i64 = 23000;
 const DAY_LENGTH: i64 = 24000;
 
-const EVENT_ORDER: [&str; 23] = [
+const EVENT_ORDER: [&str; 26] = [
     "underwater",
     "dying",
     "fishing",
@@ -28,6 +28,8 @@ const EVENT_ORDER: [&str; 23] = [
     "horse",
     "pig",
     "pumpkin",
+    "nether",
+    "end",
     "bastion",
     "fortress",
     "stronghold",
@@ -36,6 +38,7 @@ const EVENT_ORDER: [&str; 23] = [
     "end_city",
     "ancient_city",
     "trial_chambers",
+    "villagenight",
     "village",
     "deepunderground",
     "underground",
@@ -107,8 +110,8 @@ fn lookup(
     get: impl Fn(&pk::Pack) -> Option<&String>,
 ) -> Option<String> {
     get(main)
-        .map(|track| main.event(track))
-        .or_else(|| fallback.and_then(|pack| get(pack).map(|track| pack.event(track))))
+        .map(|track| main.event(pick_song(track)))
+        .or_else(|| fallback.and_then(|pack| get(pack).map(|track| pack.event(pick_song(track)))))
 }
 
 fn forced(pack: &pk::Pack) -> Option<String> {
@@ -206,36 +209,116 @@ struct Situation<'a> {
     rain: bool,
     dimension: &'a str,
     biome: &'a str,
+    sunrise: bool,
+    sunset: bool,
+    storm: bool,
+    village: bool,
+    boss: bool,
 }
 
 fn keyword(biome: &str, words: &[&str]) -> bool {
     words.iter().any(|word| biome.contains(*word))
 }
 
-fn reactive_active(event: &str, situation: &Situation) -> bool {
+const BIOME_TAG_WORDS: [(&str, &[&str]); 12] = [
+    ("hot", &["desert", "savanna", "badlands"]),
+    ("cold", &["snowy", "frozen", "taiga", "ice"]),
+    ("mountain", &["mountain", "peak", "slope", "jagged", "stony"]),
+    ("ocean", &["ocean"]),
+    ("river", &["river"]),
+    ("forest", &["forest"]),
+    ("jungle", &["jungle"]),
+    ("swamp", &["swamp"]),
+    ("desert", &["desert"]),
+    ("plains", &["plains"]),
+    ("beach", &["beach"]),
+    ("mushroom", &["mushroom"]),
+];
+
+fn biome_tag_active(name: &str, path: &str) -> bool {
+    let wanted = name.strip_prefix("is_").unwrap_or(name);
+    let path = path.to_ascii_lowercase();
+    PRIMARY
+        .iter()
+        .chain(SECONDARY.iter())
+        .chain(BIOME_TAG_WORDS.iter())
+        .any(|(tag, words)| *tag == wanted && words.iter().any(|word| path.contains(*word)))
+}
+
+fn event_active(event: &str, situation: &Situation) -> bool {
     if situation.title {
         return event == "MAIN_MENU";
     }
+    let activity = situation.activity;
     match event {
+        "GENERIC" => true,
         "UNDERWATER" => situation.underwater,
         "UNDERGROUND" => situation.y < CAVE_Y,
         "DEEP_UNDERGROUND" => situation.y < DEEP_Y,
         "HIGH_UP" => situation.y >= HIGH_Y,
-        "NIGHT" => situation.night,
         "DAY" => !situation.night,
+        "NIGHT" => situation.night,
+        "SUNRISE" => situation.sunrise,
+        "SUNSET" => situation.sunset,
         "RAIN" => situation.rain,
+        "STORM" => situation.storm,
         "SNOW" => keyword(situation.biome, &["snowy", "frozen", "ice"]),
         "MOUNTAIN" => keyword(situation.biome, &["mountain", "peak", "slope", "jagged", "stony"]),
         "BEACH" => keyword(situation.biome, &["beach"]),
         "FOREST" => keyword(situation.biome, &["forest"]),
+        "OVERWORLD" => situation.dimension == "minecraft:overworld",
         "NETHER" => situation.dimension == "minecraft:the_nether",
         "END" => situation.dimension == "minecraft:the_end",
-        "MINECART" => situation.activity.minecart,
-        "BOAT" => situation.activity.boat,
-        "HORSE" => situation.activity.horse,
-        "PIG" => situation.activity.pig,
-        "FISHING" => situation.activity.fishing,
+        "MINECART" => activity.minecart,
+        "BOAT" => activity.boat,
+        "HORSE" => activity.horse,
+        "PIG" => activity.pig,
+        "FISHING" => activity.fishing,
+        "DYING" => activity.dying,
+        "VILLAGE" => situation.village,
+        "BOSS" => situation.boss,
         _ => false,
+    }
+}
+
+fn term_active(term: &str, situation: &Situation) -> bool {
+    let term: String = term
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect::<String>()
+        .to_ascii_lowercase();
+    if let Some(name) = term.strip_prefix("biome=") {
+        return !name.is_empty() && situation.biome.to_ascii_lowercase().contains(name);
+    }
+    if let Some(name) = term.strip_prefix("biometag=") {
+        return biome_tag_active(name, situation.biome);
+    }
+    if let Some(name) = term.strip_prefix("dim=") {
+        return !name.is_empty() && situation.dimension.to_ascii_lowercase().contains(name);
+    }
+    if term.starts_with("block=") {
+        return false;
+    }
+    event_active(&term.to_ascii_uppercase(), situation)
+}
+
+fn condition_active(events: &[String], situation: &Situation) -> bool {
+    !events.is_empty()
+        && events
+            .iter()
+            .all(|condition| condition.split("||").any(|term| term_active(term, situation)))
+}
+
+fn pick_song(value: &str) -> &str {
+    let songs: Vec<&str> = value
+        .split(',')
+        .map(str::trim)
+        .filter(|song| !song.is_empty())
+        .collect();
+    if songs.is_empty() {
+        value
+    } else {
+        songs[reactive_seed() % songs.len()]
     }
 }
 
@@ -325,6 +408,9 @@ impl crate::game::Game<'_> {
                 "rain" => self.weather_levels(1.0).0 > 0.2,
                 "night" => night(self.world.day_time),
                 "generic" => true,
+                "villagenight" => in_bounds("village") && night(self.world.day_time),
+                "nether" => dimension == "minecraft:the_nether",
+                "end" => dimension == "minecraft:the_end",
                 _ => STRUCTURES.iter().any(|(name, reach)| {
                     *name == event
                         && match reach {
@@ -374,9 +460,24 @@ impl crate::game::Game<'_> {
                 rain: false,
                 dimension: "",
                 biome: "",
+                sunrise: false,
+                sunset: false,
+                storm: false,
+                village: false,
+                boss: false,
             });
         }
         let eye = self.eye_position()?;
+        let time = self.world.day_time.rem_euclid(DAY_LENGTH);
+        let pos = [
+            eye[0].floor() as i32,
+            eye[1].floor() as i32,
+            eye[2].floor() as i32,
+        ];
+        let dimension = self.dim.id();
+        let village = cached_reaching(self, dimension, pos)
+            .iter()
+            .any(|(name, _)| name.contains("village"));
         Some(Situation {
             title: false,
             underwater: self.ambience.was_underwater(),
@@ -384,8 +485,13 @@ impl crate::game::Game<'_> {
             y: eye[1],
             night: night(self.world.day_time),
             rain: self.weather_levels(1.0).0 > 0.2,
-            dimension: self.dim.id(),
+            dimension,
             biome: biome_path(self, eye),
+            sunrise: time >= 23000 || time < 1000,
+            sunset: (12000..13000).contains(&time),
+            storm: self.weather_levels(1.0).1 > 0.2,
+            village,
+            boss: self.boss_music(),
         })
     }
 
@@ -399,7 +505,7 @@ impl crate::game::Game<'_> {
             }
             let situation = self.situation()?;
             for entry in entries {
-                if entry.events.iter().any(|event| reactive_active(event, &situation)) {
+                if condition_active(&entry.events, &situation) {
                     if let Some(song) = pick(&entry.songs) {
                         let event = if song.contains(':') {
                             song
@@ -420,7 +526,7 @@ impl crate::game::Game<'_> {
         }
         let situation = self.situation()?;
         for entry in &pack.reactive {
-            if entry.events.iter().any(|event| reactive_active(event, &situation)) {
+            if condition_active(&entry.events, &situation) {
                 if let Some(song) = pick(&entry.songs) {
                     return Some((
                         pack.event(&song),

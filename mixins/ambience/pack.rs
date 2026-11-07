@@ -217,6 +217,11 @@ fn locate_zip(archive: &Path) -> HashMap<String, Entry> {
     audio
 }
 
+fn valid_list(value: &str) -> bool {
+    let songs: Vec<&str> = value.split(',').map(str::trim).collect();
+    !songs.is_empty() && songs.iter().all(|song| valid_track(song))
+}
+
 fn valid_track(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_TRACK
@@ -240,7 +245,7 @@ fn parse(pack: &mut Pack, text: &str) {
             pack.enabled = value.eq_ignore_ascii_case("true");
             continue;
         }
-        if !valid_track(value) {
+        if !valid_list(value) {
             continue;
         }
         let value = value.to_owned();
@@ -367,9 +372,11 @@ fn load(name: &str) -> Option<Pack> {
         .chain(pack.biomes.values())
         .chain(pack.primary.values())
         .chain(pack.secondary.values())
-        .chain(pack.reactive.iter().flat_map(|entry| entry.songs.iter()))
-        .filter(|track| pack.audio.contains_key(&track.to_ascii_lowercase()))
-        .cloned()
+        .flat_map(|value| value.split(','))
+        .chain(pack.reactive.iter().flat_map(|entry| entry.songs.iter().map(String::as_str)))
+        .map(str::trim)
+        .filter(|track| !track.is_empty() && pack.audio.contains_key(&track.to_ascii_lowercase()))
+        .map(str::to_owned)
         .collect();
     tracks.sort();
     tracks.dedup();
