@@ -2,7 +2,7 @@
 
 ![Ambience icon](icons/ambience.png)
 
-Plays music from a resource pack, chosen by where you are and what you are doing: structures, villages, underwater, biome, dimension, activity, or a generic fallback.
+Plays music from a resource pack, chosen by where you are and what you are doing: structures, villages, underwater, biome, dimension, activity, or a generic fallback. The idea comes from [Ambience](https://github.com/VazkiiModsArchive/Ambience) by Vazkii.
 
 ## Recommended packs: Ambience
 
