@@ -1,5 +1,7 @@
 # Ambience (Horizon native mod)
 
+![Ambience icon](icons/ambience.png)
+
 Plays music from a resource pack, chosen by where you are and what you are doing: structures, villages, underwater, biome, dimension, activity, or a generic fallback.
 
 ## Recommended packs: Ambience
