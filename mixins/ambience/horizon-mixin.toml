@@ -2,6 +2,9 @@
 id = "ambience"
 version = "0.1.0"
 
+[compatibility]
+horizon_revision = "6d99e14ff0c70ae60bc56b67829b526409fa068e"
+
 [[module]]
 id = "core"
 file = "crates/horizon-client/src/game.rs"
