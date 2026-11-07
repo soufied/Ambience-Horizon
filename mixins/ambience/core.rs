@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 pub const ID: &str = "ambience";
 pub const NAME: &str = "Ambience";
-pub const VERSION: &str = "0.1.0";
-pub const DESCRIPTION: &str = "Plays the music of Ambience packs (the original .properties layout) by place, biome and situation.";
+pub const VERSION: &str = "0.1.1";
+pub const DESCRIPTION: &str = "Plays Ambience and ReactiveMusic packs in Horizon, matched to place, biome, and situation.";
 pub const NAMESPACE: &str = "ambience";
 pub const COMMAND: &str = "ambience";
 
