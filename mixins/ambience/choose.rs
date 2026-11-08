@@ -19,7 +19,7 @@ const NIGHT_START: i64 = 13000;
 const NIGHT_END: i64 = 23000;
 const DAY_LENGTH: i64 = 24000;
 
-const EVENT_ORDER: [&str; 26] = [
+const EVENT_ORDER: [&str; 25] = [
     "underwater",
     "dying",
     "fishing",
@@ -45,7 +45,6 @@ const EVENT_ORDER: [&str; 26] = [
     "highup",
     "rain",
     "night",
-    "generic",
 ];
 
 const PRIMARY: [(&str, &[&str]); 7] = [
@@ -407,7 +406,6 @@ impl crate::game::Game<'_> {
                 "pumpkin" => activity.pumpkin,
                 "rain" => self.weather_levels(1.0).0 > 0.2,
                 "night" => night(self.world.day_time),
-                "generic" => true,
                 "villagenight" => in_bounds("village") && night(self.world.day_time),
                 "nether" => dimension == "minecraft:the_nether",
                 "end" => dimension == "minecraft:the_end",
@@ -648,5 +646,15 @@ impl crate::game::Game<'_> {
         if player::lock().owns {
             *music = None;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generic_is_not_an_early_event() {
+        assert!(!EVENT_ORDER.contains(&"generic"));
     }
 }

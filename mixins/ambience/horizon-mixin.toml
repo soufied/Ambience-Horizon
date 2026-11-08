@@ -1,6 +1,6 @@
 [mod]
 id = "ambience"
-version = "0.1.1"
+version = "0.1.2"
 
 [compatibility]
 horizon_revision = "6d99e14ff0c70ae60bc56b67829b526409fa068e"
