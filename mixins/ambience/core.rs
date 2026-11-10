@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 pub const ID: &str = "ambience";
 pub const NAME: &str = "Ambience";
-pub const VERSION: &str = "0.1.2";
+pub const VERSION: &str = "0.1.3";
 pub const DESCRIPTION: &str = "Plays Ambience and ReactiveMusic packs in Horizon, matched to place, biome, and situation.";
 pub const NAMESPACE: &str = "ambience";
 pub const COMMAND: &str = "ambience";

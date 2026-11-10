@@ -189,7 +189,9 @@ fn locate_folder(root: &Path) -> HashMap<String, Entry> {
             .and_then(|ext| ext.to_str())
             .is_some_and(|ext| SOURCE_EXTENSIONS.iter().any(|known| ext.eq_ignore_ascii_case(known)));
         if let (true, Some(stem)) = (supported, path.file_stem().and_then(|s| s.to_str())) {
-            audio.insert(stem.to_ascii_lowercase(), Entry::File(path.clone()));
+            if valid_track(stem) {
+                audio.insert(stem.to_ascii_lowercase(), Entry::File(path.clone()));
+            }
         }
     }
     audio
@@ -203,7 +205,7 @@ fn locate_zip(archive: &Path) -> HashMap<String, Entry> {
             continue;
         };
         if let Some((stem, ext)) = rest.rsplit_once('.') {
-            if SOURCE_EXTENSIONS.contains(&ext) && !stem.contains('/') {
+            if SOURCE_EXTENSIONS.contains(&ext) && valid_track(stem) {
                 audio.insert(
                     stem.to_owned(),
                     Entry::Zipped {
@@ -228,6 +230,15 @@ fn valid_track(value: &str) -> bool {
         && value
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+}
+
+fn contained(root: &Path, path: &Path) -> bool {
+    path.strip_prefix(root).is_ok_and(|rest| {
+        rest.components().count() == 1
+            && rest
+                .to_str()
+                .is_some_and(|text| !text.contains(['\\', ':', '/']))
+    })
 }
 
 fn parse(pack: &mut Pack, text: &str) {
@@ -375,7 +386,9 @@ fn load(name: &str) -> Option<Pack> {
         .flat_map(|value| value.split(','))
         .chain(pack.reactive.iter().flat_map(|entry| entry.songs.iter().map(String::as_str)))
         .map(str::trim)
-        .filter(|track| !track.is_empty() && pack.audio.contains_key(&track.to_ascii_lowercase()))
+        .filter(|track| {
+            valid_track(track) && pack.audio.contains_key(&track.to_ascii_lowercase())
+        })
         .map(str::to_owned)
         .collect();
     tracks.sort();
@@ -543,6 +556,9 @@ pub fn ready(event: &str) -> bool {
         FALLBACK_NAMESPACE => cached_fallback(),
         _ => return true,
     };
+    if !valid_track(track) {
+        return false;
+    }
     pack.is_some_and(|pack| is_ready_file(&sounds_dir(&pack.name).join(format!("{track}.ogg"))))
 }
 
@@ -572,6 +588,9 @@ pub fn prepare(packs: &[Arc<Pack>], force: bool) {
     for pack in packs {
         for track in &pack.tracks {
             let lower = track.to_ascii_lowercase();
+            if !valid_track(&lower) {
+                continue;
+            }
             if let Some(entry) = pack.audio.get(&lower) {
                 jobs.push((pack.name.clone(), lower, entry.clone()));
             }
@@ -705,12 +724,18 @@ fn convert(
     manifest: &mut Manifest,
     force: bool,
 ) -> Result<bool, String> {
+    if !valid_track(lower) {
+        return Err(format!("unsafe track name {lower:?}"));
+    }
     if up_to_date(sounds, manifest, lower, entry, force) {
         return Ok(false);
     }
     let print = fingerprint(entry).ok_or_else(|| "the source cannot be read".to_owned())?;
     let target = sounds.join(format!("{lower}.ogg"));
     let partial = sounds.join(format!("{lower}.partial"));
+    if !contained(sounds, &target) || !contained(sounds, &partial) {
+        return Err(format!("output path for {lower:?} leaves the cache"));
+    }
     if let Err(error) = encode_entry(entry, cache, lower, &partial).and_then(|()| verify(&partial)) {
         let _ = fs::remove_file(&partial);
         return Err(error);
@@ -725,6 +750,9 @@ fn encode_entry(entry: &Entry, cache: &Path, lower: &str, partial: &Path) -> Res
         Entry::File(path) => encode_file(path, partial),
         Entry::Zipped { archive, name } => {
             let extracted = cache.join(format!("{lower}.src"));
+            if !contained(cache, &extracted) {
+                return Err(format!("source path for {lower:?} leaves the cache"));
+            }
             if !extract(archive, name, &extracted) {
                 return Err(format!("could not read {name} from {}", archive.display()));
             }
@@ -851,4 +879,42 @@ fn extract(archive: &Path, name: &str, to: &Path) -> bool {
         return ok;
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn refuses_traversal_names_for_every_separator_style() {
+        for name in [
+            "..\\..\\victim",
+            "..\\x",
+            "music\\x",
+            "C:x",
+            "C:\\x",
+            "a/b",
+            "a.b",
+            "a:b",
+            "",
+        ] {
+            assert!(!valid_track(name), "{name:?} must be rejected");
+        }
+    }
+
+    #[test]
+    fn accepts_plain_track_names() {
+        for name in ["rain", "cave_1", "ocean-wave"] {
+            assert!(valid_track(name), "{name:?} must be accepted");
+        }
+    }
+
+    #[test]
+    fn contained_refuses_windows_style_escape() {
+        let root = Path::new("cache").join("sounds");
+        assert!(!contained(&root, &root.join("..\\..\\victim.src")));
+        assert!(!contained(&root, &root.join("..").join("victim.src")));
+        assert!(!contained(&root, &root.join("sub").join("x.ogg")));
+        assert!(contained(&root, &root.join("rain.ogg")));
+    }
 }
